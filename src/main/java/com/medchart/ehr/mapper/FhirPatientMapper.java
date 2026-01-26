@@ -171,21 +171,21 @@ public class FhirPatientMapper {
 
     private String mapGender(Gender gender) {
         if (gender == null) return "unknown";
-        return switch (gender) {
-            case MALE -> "male";
-            case FEMALE -> "female";
-            case OTHER -> "other";
-            default -> "unknown";
-        };
+        switch (gender) {
+            case MALE: return "male";
+            case FEMALE: return "female";
+            case OTHER: return "other";
+            default: return "unknown";
+        }
     }
 
     private Gender mapFhirGender(String fhirGender) {
-        return switch (fhirGender.toLowerCase()) {
-            case "male" -> Gender.MALE;
-            case "female" -> Gender.FEMALE;
-            case "other" -> Gender.OTHER;
-            default -> Gender.OTHER;
-        };
+        switch (fhirGender.toLowerCase()) {
+            case "male": return Gender.MALE;
+            case "female": return Gender.FEMALE;
+            case "other": return Gender.OTHER;
+            default: return Gender.OTHER;
+        }
     }
 
     private List<Map<String, Object>> buildTelecom(Patient patient) {
@@ -223,19 +223,21 @@ public class FhirPatientMapper {
     }
 
     private Map<String, Object> buildMaritalStatus(Patient patient) {
-        String code = switch (patient.getMaritalStatus()) {
-            case SINGLE -> "S";
-            case MARRIED -> "M";
-            case DIVORCED -> "D";
-            case WIDOWED -> "W";
-            default -> "UNK";
-        };
+        String code;
+        switch (patient.getMaritalStatus()) {
+            case SINGLE: code = "S"; break;
+            case MARRIED: code = "M"; break;
+            case DIVORCED: code = "D"; break;
+            case WIDOWED: code = "W"; break;
+            default: code = "UNK"; break;
+        }
         
-        return Map.of(
-            "coding", List.of(Map.of(
-                "system", "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
-                "code", code
-            ))
-        );
+        Map<String, Object> coding = new java.util.HashMap<>();
+        coding.put("system", "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus");
+        coding.put("code", code);
+        
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("coding", java.util.Collections.singletonList(coding));
+        return result;
     }
 }
