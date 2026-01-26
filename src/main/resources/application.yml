@@ -3,8 +3,8 @@ spring:
     name: medchart-ehr-api
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/medchart_ehr
-    username: medchart
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/medchart_ehr}
+    username: ${DB_USERNAME:medchart}
     password: ${DB_PASSWORD:medchart_dev}
     driver-class-name: org.postgresql.Driver
 

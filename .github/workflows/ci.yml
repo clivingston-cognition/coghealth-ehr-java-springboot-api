@@ -17,8 +17,12 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '11'
           cache: 'maven'
+        env:
+          NEON_DB_URL: ${{ secrets.NEON_DB_URL }}
+          NEON_DB_USERNAME: ${{ secrets.NEON_DB_USERNAME }}
+          NEON_DB_PASSWORD: ${{ secrets.NEON_DB_PASSWORD }}
 
       - name: Compile
         run: mvn compile -B
