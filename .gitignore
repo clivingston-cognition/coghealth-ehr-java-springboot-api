@@ -51,6 +51,7 @@ application-local.yml
 application-prod.yml
 *.pem
 *.key
+.env
 
 # Test
 /coverage/
