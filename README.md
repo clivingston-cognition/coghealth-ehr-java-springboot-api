@@ -63,28 +63,28 @@ Add the following **repository secrets** at `Settings → Secrets and variables 
 | `NEON_DB_USERNAME` | Neon database username |
 | `NEON_DB_PASSWORD` | Neon database password |
 
-### Quick Start (Recommended - Cloud DB)
-
-Run with the shared Neon database:
+### Quick Start
 
 ```bash
-# Ensure env vars are set (see Environment Setup above)
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+./start.sh
 ```
 
-This connects to the shared Neon PostgreSQL instance. Schema and seed data are already applied.
+This will prompt you to choose:
+1. **Local PostgreSQL** (default) - requires Docker running
+2. **Neon cloud** - requires `NEON_DB_*` env vars
 
-### Local Development (Docker)
-
-For fully local development with Docker:
+### Manual Start
 
 ```bash
-# Start infrastructure (PostgreSQL, Redis, etc.)
-# Note: docker-compose.yml is in the data/ repo
-cd ../data && docker-compose up -d && cd ../api
+# Option 1: Local PostgreSQL (default)
+docker-compose -f ../data/docker-compose.yml up -d   # Start PostgreSQL, Redis, etc.
+mvn spring-boot:run
 
-# Run the app
-mvn spring-boot:run -Dspring-boot.run.profiles=local
+# Option 2: Neon cloud database
+export NEON_DB_URL=jdbc:postgresql://your-endpoint.neon.tech/neondb?sslmode=require
+export NEON_DB_USERNAME=your-username
+export NEON_DB_PASSWORD=your-password
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
 ## API Documentation
