@@ -77,14 +77,15 @@ public class PatientService {
         return patientMapper.toDto(saved);
     }
 
+    /**
+     * @deprecated SSN-based patient lookup is deprecated for HIPAA compliance.
+     * Use getPatientByMrn() or searchPatients() instead.
+     */
+    @Deprecated
     public Optional<PatientDTO> findBySsn(String ssn) {
-        try {
-            return patientRepository.findBySsn(ssn)
-                    .map(patientMapper::toDto);
-        } catch (Exception e) {
-            log.error("Error finding patient by SSN: " + ssn, e);
-            throw e;
-        }
+        throw new UnsupportedOperationException(
+            "SSN-based patient lookup is disabled for HIPAA compliance. " +
+            "Use MRN or name-based search instead.");
     }
 
     private String generateMrn() {

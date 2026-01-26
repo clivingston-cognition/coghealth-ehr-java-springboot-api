@@ -75,9 +75,9 @@ public class LegacyPatientLookup {
     }
 
     public List<Object[]> searchPatientsRaw(String searchTerm) {
-        String sql = "SELECT id, mrn, ssn, first_name, last_name, date_of_birth " +
+        String sql = "SELECT id, mrn, first_name, last_name, date_of_birth " +
                      "FROM patients WHERE " +
-                     "first_name ILIKE ?1 OR last_name ILIKE ?1 OR mrn ILIKE ?1 OR ssn ILIKE ?1";
+                     "first_name ILIKE ?1 OR last_name ILIKE ?1 OR mrn ILIKE ?1";
         Query query = entityManager.createNativeQuery(sql);
         query.setParameter(1, "%" + searchTerm + "%");
         return query.getResultList();

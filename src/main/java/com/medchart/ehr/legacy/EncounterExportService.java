@@ -22,7 +22,8 @@ public class EncounterExportService {
     private EntityManager entityManager;
 
     public byte[] exportEncountersForDateRange(LocalDate startDate, LocalDate endDate) {
-        String sql = "SELECT e.*, p.mrn, p.first_name, p.last_name, p.ssn, p.date_of_birth " +
+        String sql = "SELECT e.id, e.encounter_number, e.encounter_type, e.status, e.encounter_date_time, " +
+                     "p.mrn, p.first_name, p.last_name, p.date_of_birth " +
                      "FROM encounters e " +
                      "JOIN patients p ON e.patient_id = p.id " +
                      "WHERE e.encounter_date_time BETWEEN ?1 AND ?2";
@@ -34,19 +35,17 @@ public class EncounterExportService {
         List<Object[]> results = query.getResultList();
         
         StringBuilder csv = new StringBuilder();
-        csv.append("EncounterId,EncounterNumber,PatientMRN,PatientName,SSN,DOB,EncounterDate,Type,Status\n");
+        csv.append("EncounterId,EncounterNumber,PatientMRN,PatientName,DOB,EncounterDate,Type,Status\n");
         
         for (Object[] row : results) {
-            int len = row.length;
             csv.append(row[0]).append(",");
             csv.append(row[1]).append(",");
-            csv.append(row[len - 5]).append(",");
-            csv.append(row[len - 4]).append(" ").append(row[len - 3]).append(",");
-            csv.append(row[len - 2]).append(",");
-            csv.append(row[len - 1]).append(",");
             csv.append(row[5]).append(",");
-            csv.append(row[3]).append(",");
-            csv.append(row[4]).append("\n");
+            csv.append(row[6]).append(" ").append(row[7]).append(",");
+            csv.append(row[8]).append(",");
+            csv.append(row[4]).append(",");
+            csv.append(row[2]).append(",");
+            csv.append(row[3]).append("\n");
         }
         
         log.info("Exported {} encounters for date range {} to {}", results.size(), startDate, endDate);
@@ -87,21 +86,20 @@ public class EncounterExportService {
 
     public void exportAllPatientsToFile(String filePath) {
         Query query = entityManager.createNativeQuery(
-            "SELECT id, mrn, ssn, first_name, last_name, date_of_birth, " +
+            "SELECT id, mrn, first_name, last_name, date_of_birth, " +
             "email, phone_home, phone_mobile, street1, city, state, zip_code " +
             "FROM patients WHERE active = true");
         
         List<Object[]> patients = query.getResultList();
         
         try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
-            writer.println("ID,MRN,SSN,FirstName,LastName,DOB,Email,PhoneHome,PhoneMobile,Street,City,State,Zip");
+            writer.println("ID,MRN,FirstName,LastName,DOB,Email,PhoneHome,PhoneMobile,Street,City,State,Zip");
             for (Object[] p : patients) {
                 writer.println(String.join(",", 
                     String.valueOf(p[0]), String.valueOf(p[1]), String.valueOf(p[2]),
                     String.valueOf(p[3]), String.valueOf(p[4]), String.valueOf(p[5]),
                     String.valueOf(p[6]), String.valueOf(p[7]), String.valueOf(p[8]),
-                    String.valueOf(p[9]), String.valueOf(p[10]), String.valueOf(p[11]),
-                    String.valueOf(p[12])));
+                    String.valueOf(p[9]), String.valueOf(p[10]), String.valueOf(p[11])));
             }
             log.info("Exported {} patients to file: {}", patients.size(), filePath);
         } catch (IOException e) {
