@@ -1,6 +1,7 @@
 package com.medchart.ehr.domain.encounter;
 
 public enum EncounterType {
+    OFFICE_VISIT,
     OUTPATIENT,
     INPATIENT,
     EMERGENCY,

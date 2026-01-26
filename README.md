@@ -8,9 +8,9 @@ This is the backend API for the MedChart EHR system, providing RESTful endpoints
 
 ## Tech Stack
 
-- Java 11
+- Java 17
 - Spring Boot 2.7.x
-- PostgreSQL
+- PostgreSQL (Neon for cloud, Docker for local)
 - Redis (caching)
 - RabbitMQ (messaging)
 
@@ -18,27 +18,36 @@ This is the backend API for the MedChart EHR system, providing RESTful endpoints
 
 ### Prerequisites
 
-- JDK 11+
+- JDK 17+
 - Maven 3.6+
-- PostgreSQL 14+
-- Redis 7+
-- Docker (optional)
+- Docker (for local infrastructure)
 
-### Local Development
+### Development Profiles
 
-1. Clone the repository
-2. Copy `application-local.yml.example` to `application-local.yml` and configure
-3. Start PostgreSQL and Redis
-4. Run the application:
+| Profile | Database | Use Case |
+|---------|----------|----------|
+| `dev` | Neon (cloud) | Remote/Devin sessions, shared data |
+| `local` | Docker PostgreSQL | Local-only development |
+
+### Quick Start (Recommended - Cloud DB)
+
+Run with the shared Neon database (no local setup needed):
 
 ```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=local
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
-### Using Docker
+This connects to the shared Neon PostgreSQL instance. Schema and seed data are already applied.
+
+### Local Development (Docker)
+
+For fully local development with Docker:
 
 ```bash
+# Start infrastructure (PostgreSQL, Redis, etc.)
 docker-compose up -d
+
+# Run the app
 mvn spring-boot:run -Dspring-boot.run.profiles=local
 ```
 
@@ -66,10 +75,29 @@ src/main/java/com/medchart/ehr/
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| DB_PASSWORD | Database password | medchart_dev |
+| NEON_DB_PASSWORD | Neon database password | (set in application-dev.yml) |
+| DB_PASSWORD | Local database password | medchart_dev |
 | JWT_SECRET | JWT signing secret | (dev default) |
 | INSURANCE_API_URL | Insurance API endpoint | http://localhost:8081 |
 | PHARMACY_API_URL | Pharmacy API endpoint | http://localhost:8082 |
+
+## Database
+
+### Neon (Cloud - dev profile)
+
+The `dev` profile uses a shared Neon PostgreSQL database. Connection details are in `application-dev.yml`. Flyway migrations run automatically on startup.
+
+### Docker (Local - local profile)
+
+Local Docker setup includes:
+- PostgreSQL (port 5432)
+- Redis (port 6379)
+- Keycloak (port 8180)
+- RabbitMQ (ports 5672, 15672)
+- Elasticsearch (port 9200)
+- Kibana (port 5601)
+
+See `docker-compose.yml` for details.
 
 ## Contributing
 

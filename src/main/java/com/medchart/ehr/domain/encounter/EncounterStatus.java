@@ -1,13 +1,10 @@
 package com.medchart.ehr.domain.encounter;
 
 public enum EncounterStatus {
-    PLANNED,
-    ARRIVED,
-    TRIAGED,
+    SCHEDULED,
+    CHECKED_IN,
     IN_PROGRESS,
-    ON_HOLD,
-    FINISHED,
+    COMPLETED,
     CANCELLED,
-    ENTERED_IN_ERROR,
-    UNKNOWN
+    NO_SHOW
 }

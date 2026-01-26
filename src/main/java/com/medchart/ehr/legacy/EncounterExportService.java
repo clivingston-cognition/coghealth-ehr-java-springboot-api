@@ -37,12 +37,13 @@ public class EncounterExportService {
         csv.append("EncounterId,EncounterNumber,PatientMRN,PatientName,SSN,DOB,EncounterDate,Type,Status\n");
         
         for (Object[] row : results) {
+            int len = row.length;
             csv.append(row[0]).append(",");
             csv.append(row[1]).append(",");
-            csv.append(row[results.length - 5]).append(",");
-            csv.append(row[results.length - 4]).append(" ").append(row[results.length - 3]).append(",");
-            csv.append(row[results.length - 2]).append(",");
-            csv.append(row[results.length - 1]).append(",");
+            csv.append(row[len - 5]).append(",");
+            csv.append(row[len - 4]).append(" ").append(row[len - 3]).append(",");
+            csv.append(row[len - 2]).append(",");
+            csv.append(row[len - 1]).append(",");
             csv.append(row[5]).append(",");
             csv.append(row[3]).append(",");
             csv.append(row[4]).append("\n");

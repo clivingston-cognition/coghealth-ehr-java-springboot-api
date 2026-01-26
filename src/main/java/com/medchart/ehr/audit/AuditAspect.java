@@ -6,7 +6,6 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -20,7 +19,7 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 public class AuditAspect {
 
-    private final AuditEventRepository auditEventRepository;
+    private final AuditService auditService;
 
     @Around("@annotation(com.medchart.ehr.audit.AuditAccess)")
     public Object auditAccess(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -44,22 +43,13 @@ public class AuditAspect {
         try {
             Object result = joinPoint.proceed();
             eventBuilder.success(true);
-            saveAuditEventAsync(eventBuilder.build());
+            auditService.saveAuditEventAsync(eventBuilder.build());
             return result;
         } catch (Exception e) {
             eventBuilder.success(false);
             eventBuilder.errorMessage(e.getMessage());
-            saveAuditEventAsync(eventBuilder.build());
+            auditService.saveAuditEventAsync(eventBuilder.build());
             throw e;
-        }
-    }
-
-    @Async
-    public void saveAuditEventAsync(AuditEvent event) {
-        try {
-            auditEventRepository.save(event);
-        } catch (Exception e) {
-            log.error("Failed to save audit event", e);
         }
     }
 
