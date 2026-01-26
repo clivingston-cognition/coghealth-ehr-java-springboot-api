@@ -153,6 +153,10 @@ Local Docker setup (in `data/` repo) includes:
 
 See CONTRIBUTING.md for guidelines.
 
+## Security
+
+**Note:** Authentication is currently disabled for development. All endpoints are accessible without credentials. CORS is configured to allow requests from `localhost:5173`, `localhost:5178`, and `localhost:3000`.
+
 ## License
 
-Proprietary - MedChart Health Systems
+Demo Application - Cognition AI
