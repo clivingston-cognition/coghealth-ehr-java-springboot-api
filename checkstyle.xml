@@ -115,6 +115,9 @@
             <property name="offCommentFormat" value="CHECKSTYLE:OFF"/>
             <property name="onCommentFormat" value="CHECKSTYLE:ON"/>
         </module>
+
+        <!-- Required companion for SuppressWarningsFilter -->
+        <module name="SuppressWarningsHolder"/>
     </module>
 
     <!-- Suppress warnings for specific files -->
