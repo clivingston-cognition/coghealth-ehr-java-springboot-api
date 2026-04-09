@@ -1,0 +1,49 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  flyway:
+    enabled: false
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+
+server:
+  port: 0
+  servlet:
+    context-path: /api
+
+medchart:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+      expiration: 86400000
+  audit:
+    enabled: false
+    async: false
+  integration:
+    insurance:
+      base-url: http://localhost:9999
+      timeout: 1000
+    pharmacy:
+      base-url: http://localhost:9998
+      timeout: 1000
+    lab:
+      hl7-port: 2575
