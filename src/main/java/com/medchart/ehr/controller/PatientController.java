@@ -1,5 +1,6 @@
 package com.medchart.ehr.controller;
 
+import com.medchart.ehr.dto.BatchPatientResult;
 import com.medchart.ehr.dto.PatientDTO;
 import com.medchart.ehr.service.PatientService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/v1/patients")
@@ -46,6 +48,28 @@ public class PatientController {
     public ResponseEntity<PatientDTO> createPatient(@Valid @RequestBody PatientDTO patientDTO) {
         PatientDTO created = patientService.createPatient(patientDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping("/batch")
+    @Operation(summary = "Batch create patients",
+            description = "Create multiple patients in a single request."
+                    + " Max 100 patients per batch.")
+    public ResponseEntity<BatchPatientResult> createPatientsBatch(
+            @RequestBody @Valid List<@Valid PatientDTO> patients) {
+        if (patients.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Batch request must contain at least one patient");
+        }
+        if (patients.size() > 100) {
+            throw new IllegalArgumentException(
+                    "Batch size cannot exceed 100");
+        }
+        BatchPatientResult result =
+                patientService.createPatientsBatch(patients);
+        HttpStatus status = result.getFailureCount() > 0
+                ? HttpStatus.MULTI_STATUS
+                : HttpStatus.CREATED;
+        return ResponseEntity.status(status).body(result);
     }
 
     @PutMapping("/{id}")
