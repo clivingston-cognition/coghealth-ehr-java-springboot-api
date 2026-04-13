@@ -3,6 +3,7 @@ package com.medchart.ehr.service;
 import com.medchart.ehr.audit.AuditAccess;
 import com.medchart.ehr.audit.AuditAction;
 import com.medchart.ehr.domain.patient.Patient;
+import com.medchart.ehr.dto.BatchPatientResult;
 import com.medchart.ehr.dto.PatientDTO;
 import com.medchart.ehr.mapper.PatientMapper;
 import com.medchart.ehr.repository.PatientRepository;
@@ -13,8 +14,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.EntityManager;
 import javax.persistence.EntityNotFoundException;
+import javax.validation.ConstraintViolation;
+import javax.validation.Validator;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -24,6 +32,8 @@ public class PatientService {
 
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
+    private final EntityManager entityManager;
+    private final Validator validator;
 
     @AuditAccess(action = AuditAction.READ, resourceType = "Patient", description = "View patient record")
     public PatientDTO getPatientById(Long id) {
@@ -86,6 +96,70 @@ public class PatientService {
         throw new UnsupportedOperationException(
             "SSN-based patient lookup is disabled for HIPAA compliance. " +
             "Use MRN or name-based search instead.");
+    }
+
+    @Transactional
+    @AuditAccess(action = AuditAction.CREATE, resourceType = "Patient",
+            description = "Batch create patients")
+    public BatchPatientResult createPatientsBatch(List<PatientDTO> patients) {
+        List<PatientDTO> created = new ArrayList<>();
+        List<BatchPatientResult.BatchItemError> errors = new ArrayList<>();
+
+        for (int i = 0; i < patients.size(); i++) {
+            PatientDTO patientDTO = patients.get(i);
+            try {
+                if (patientDTO.getMrn() != null) {
+                    Optional<Patient> existing =
+                            patientRepository.findByMrn(patientDTO.getMrn());
+                    if (existing.isPresent()) {
+                        throw new IllegalArgumentException(
+                                "Patient with MRN "
+                                        + patientDTO.getMrn()
+                                        + " already exists");
+                    }
+                }
+                Patient patient = patientMapper.toEntity(patientDTO);
+                if (patient.getMrn() == null) {
+                    patient.setMrn(generateMrn());
+                }
+                Set<ConstraintViolation<Patient>> violations =
+                        validator.validate(patient);
+                if (!violations.isEmpty()) {
+                    String msg = violations.stream()
+                            .map(v -> v.getPropertyPath()
+                                    + " " + v.getMessage())
+                            .collect(Collectors.joining(", "));
+                    throw new IllegalArgumentException(
+                            "Validation failed: " + msg);
+                }
+                Patient saved = patientRepository.save(patient);
+                entityManager.flush();
+                log.info("Batch create - created patient with MRN: {}",
+                        saved.getMrn());
+                created.add(patientMapper.toDto(saved));
+            } catch (Exception e) {
+                log.warn(
+                        "Batch create - failed to create patient at index {}: {}",
+                        i, e.getMessage());
+                entityManager.clear();
+                errors.add(BatchPatientResult.BatchItemError.builder()
+                        .index(i)
+                        .input(patientDTO)
+                        .errorMessage(e.getMessage())
+                        .build());
+            }
+        }
+
+        log.info("Batch create complete: {} succeeded, {} failed out of {}",
+                created.size(), errors.size(), patients.size());
+
+        return BatchPatientResult.builder()
+                .totalRequested(patients.size())
+                .successCount(created.size())
+                .failureCount(errors.size())
+                .created(created)
+                .errors(errors)
+                .build();
     }
 
     private String generateMrn() {
