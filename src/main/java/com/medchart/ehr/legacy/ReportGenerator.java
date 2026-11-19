@@ -7,8 +7,7 @@ import org.springframework.stereotype.Service;
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -25,6 +24,22 @@ public class ReportGenerator {
     private static final int SSN_COLUMN = 2;
 
     public String generatePatientRoster() {
+        String filename = "patient_roster_" + 
+            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
+        String filePath = TEMP_DIR + File.separator + filename;
+        
+        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
+            writeRoster(writer);
+        } catch (IOException e) {
+            log.error("Failed to generate patient roster", e);
+            throw new RuntimeException("Report generation failed", e);
+        }
+        
+        log.info("Generated patient roster at: {}", filePath);
+        return filePath;
+    }
+
+    private void writeRoster(PrintWriter writer) {
         String sql = "SELECT p.id, p.mrn, p.ssn, p.first_name, p.last_name, p.date_of_birth, " +
                      "p.phone_home, p.phone_mobile, p.email, " +
                      "p.street1, p.city, p.state, p.zip_code, " +
@@ -36,28 +51,16 @@ public class ReportGenerator {
         Query query = entityManager.createNativeQuery(sql);
         List<Object[]> results = query.getResultList();
         
-        String filename = "patient_roster_" + 
-            LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".csv";
-        String filePath = TEMP_DIR + File.separator + filename;
-        
-        try (PrintWriter writer = new PrintWriter(new FileWriter(filePath))) {
-            writer.println("ID,MRN,SSN,FirstName,LastName,DOB,PhoneHome,PhoneMobile,Email,Address,City,State,Zip,Insurance,MemberID");
-            for (Object[] row : results) {
-                StringBuilder line = new StringBuilder();
-                for (int i = 0; i < row.length; i++) {
-                    if (i > 0) line.append(",");
-                    Object value = i == SSN_COLUMN ? SsnMasker.mask(row[i]) : row[i];
-                    line.append(value != null ? value.toString().replace(",", ";") : "");
-                }
-                writer.println(line);
+        writer.println("ID,MRN,SSN,FirstName,LastName,DOB,PhoneHome,PhoneMobile,Email,Address,City,State,Zip,Insurance,MemberID");
+        for (Object[] row : results) {
+            StringBuilder line = new StringBuilder();
+            for (int i = 0; i < row.length; i++) {
+                if (i > 0) line.append(",");
+                Object value = i == SSN_COLUMN ? SsnMasker.mask(row[i]) : row[i];
+                line.append(value != null ? value.toString().replace(",", ";") : "");
             }
-        } catch (IOException e) {
-            log.error("Failed to generate patient roster", e);
-            throw new RuntimeException("Report generation failed", e);
+            writer.println(line);
         }
-        
-        log.info("Generated patient roster at: {}", filePath);
-        return filePath;
     }
 
     public String generateEncounterSummary(LocalDateTime startDate, LocalDateTime endDate) {
@@ -105,18 +108,10 @@ public class ReportGenerator {
     }
 
     public byte[] generateDailyReport() {
-        Path tempFile = Path.of(generatePatientRoster());
-        try {
-            return Files.readAllBytes(tempFile);
-        } catch (IOException e) {
-            log.error("Failed to read temp file", e);
-            throw new RuntimeException(e);
-        } finally {
-            try {
-                Files.deleteIfExists(tempFile);
-            } catch (IOException e) {
-                log.warn("Failed to delete temp report file", e);
-            }
+        StringWriter buffer = new StringWriter();
+        try (PrintWriter writer = new PrintWriter(buffer)) {
+            writeRoster(writer);
         }
+        return buffer.toString().getBytes(StandardCharsets.UTF_8);
     }
 }

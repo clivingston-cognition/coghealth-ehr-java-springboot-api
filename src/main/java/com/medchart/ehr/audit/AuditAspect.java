@@ -23,6 +23,8 @@ import java.lang.reflect.Method;
 @RequiredArgsConstructor
 public class AuditAspect {
 
+    private static final int MAX_USER_FIELD_LENGTH = 100;
+
     private final AuditService auditService;
 
     @Around("@annotation(com.medchart.ehr.audit.AuditAccess)")
@@ -35,8 +37,8 @@ public class AuditAspect {
         String userId = getCurrentUserId();
 
         AuditEvent.AuditEventBuilder eventBuilder = AuditEvent.builder()
-                .userId(userId)
-                .userName(getCurrentUserName())
+                .userId(truncate(userId, MAX_USER_FIELD_LENGTH))
+                .userName(truncate(getCurrentUserName(), MAX_USER_FIELD_LENGTH))
                 .patientId(patientId)
                 .action(auditAccess.action())
                 .resourceType(auditAccess.resourceType())
@@ -90,6 +92,13 @@ public class AuditAspect {
             return user.getFirstName() + " " + user.getLastName();
         }
         return authentication.getName();
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private String getClientIpAddress() {
