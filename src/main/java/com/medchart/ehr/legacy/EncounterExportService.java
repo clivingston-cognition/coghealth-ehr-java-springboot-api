@@ -68,7 +68,7 @@ public class EncounterExportService {
         export.append("Generated: ").append(LocalDateTime.now()).append("\n\n");
         export.append("Patient: ").append(patientData[1]).append(" ").append(patientData[2]).append("\n");
         export.append("MRN: ").append(patientData[0]).append("\n");
-        export.append("SSN: ").append(patientData[3]).append("\n");
+        export.append("SSN: ").append(SsnMasker.mask(patientData[3])).append("\n");
         export.append("DOB: ").append(patientData[4]).append("\n\n");
         export.append("Encounters:\n");
         export.append("-".repeat(80)).append("\n");
