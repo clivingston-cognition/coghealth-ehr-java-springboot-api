@@ -84,6 +84,7 @@ public class EncounterController {
         return encounterService.findById(id)
                 .map(existing -> {
                     encounter.setId(id);
+                    encounter.setStatus(existing.getStatus());
                     return ResponseEntity.ok(encounterService.update(encounter));
                 })
                 .orElse(ResponseEntity.notFound().build());
