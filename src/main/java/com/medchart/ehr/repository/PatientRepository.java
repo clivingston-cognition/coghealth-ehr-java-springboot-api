@@ -20,11 +20,14 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
 
     Page<Patient> findByLastNameContainingIgnoreCase(String lastName, Pageable pageable);
 
+    /** Callers must escape LIKE wildcards in {@code searchTerm} with {@link #LIKE_ESCAPE_CHAR}. */
     @Query("SELECT p FROM Patient p WHERE " +
-           "LOWER(p.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "LOWER(p.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-           "p.mrn LIKE CONCAT('%', :searchTerm, '%')")
+           "LOWER(p.lastName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ESCAPE '!' OR " +
+           "LOWER(p.firstName) LIKE LOWER(CONCAT('%', :searchTerm, '%')) ESCAPE '!' OR " +
+           "p.mrn LIKE CONCAT('%', :searchTerm, '%') ESCAPE '!'")
     Page<Patient> searchPatients(String searchTerm, Pageable pageable);
+
+    char LIKE_ESCAPE_CHAR = '!';
 
     List<Patient> findByDateOfBirth(LocalDate dateOfBirth);
 
