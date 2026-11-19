@@ -23,6 +23,17 @@ public interface PatientMapper {
     @Mapping(target = "version", ignore = true)
     void updateEntityFromDto(PatientDTO dto, @MappingTarget Patient entity);
 
+    /** Update that leaves record-status fields (MRN, active, deceased) untouched; for non-admin callers. */
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
+    @Mapping(target = "mrn", ignore = true)
+    @Mapping(target = "active", ignore = true)
+    @Mapping(target = "deceased", ignore = true)
+    @Mapping(target = "deceasedDate", ignore = true)
+    void updateDemographicsFromDto(PatientDTO dto, @MappingTarget Patient entity);
+
     AddressDTO toAddressDto(Address address);
     Address toAddressEntity(AddressDTO dto);
 

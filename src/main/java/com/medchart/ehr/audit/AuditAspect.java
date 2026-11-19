@@ -1,11 +1,15 @@
 package com.medchart.ehr.audit;
 
+import com.medchart.ehr.domain.auth.User;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -63,22 +67,38 @@ public class AuditAspect {
     }
 
     private String getCurrentUserId() {
-        return "system";
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return "system";
+        }
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            return "anonymous";
+        }
+        return authentication.getName();
     }
 
     private String getCurrentUserName() {
-        return "System User";
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return "System User";
+        }
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            return "Anonymous";
+        }
+        if (authentication.getPrincipal() instanceof User) {
+            User user = (User) authentication.getPrincipal();
+            return user.getFirstName() + " " + user.getLastName();
+        }
+        return authentication.getName();
     }
 
     private String getClientIpAddress() {
         try {
             ServletRequestAttributes attrs = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attrs != null) {
+                // Only trust the connection address; set server.forward-headers-strategy
+                // when deployed behind a trusted proxy.
                 HttpServletRequest request = attrs.getRequest();
-                String xForwardedFor = request.getHeader("X-Forwarded-For");
-                if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-                    return xForwardedFor.split(",")[0].trim();
-                }
                 return request.getRemoteAddr();
             }
         } catch (Exception e) {

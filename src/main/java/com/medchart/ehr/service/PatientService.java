@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +23,8 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class PatientService {
+
+    static final String ADMIN_AUTHORITY = "ROLE_ADMIN";
 
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
@@ -41,14 +45,15 @@ public class PatientService {
 
     @AuditAccess(action = AuditAction.SEARCH, resourceType = "Patient", description = "Search patients")
     public Page<PatientDTO> searchPatients(String searchTerm, Pageable pageable) {
-        return patientRepository.searchPatients(searchTerm, pageable)
+        return patientRepository.searchPatients(escapeLikeWildcards(searchTerm), pageable)
                 .map(patientMapper::toDto);
     }
 
     @Transactional
     @AuditAccess(action = AuditAction.CREATE, resourceType = "Patient", description = "Create patient record")
     public PatientDTO createPatient(PatientDTO patientDTO) {
-        if (patientDTO.getMrn() != null) {
+        boolean admin = callerIsAdmin();
+        if (admin && patientDTO.getMrn() != null) {
             Optional<Patient> existing = patientRepository.findByMrn(patientDTO.getMrn());
             if (existing.isPresent()) {
                 throw new IllegalArgumentException("Patient with MRN " + patientDTO.getMrn() + " already exists");
@@ -56,6 +61,12 @@ public class PatientService {
         }
 
         Patient patient = patientMapper.toEntity(patientDTO);
+        if (!admin) {
+            patient.setMrn(null);
+            patient.setActive(true);
+            patient.setDeceased(false);
+            patient.setDeceasedDate(null);
+        }
         if (patient.getMrn() == null) {
             patient.setMrn(generateMrn());
         }
@@ -71,7 +82,11 @@ public class PatientService {
         Patient existing = patientRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Patient not found with id: " + id));
 
-        patientMapper.updateEntityFromDto(patientDTO, existing);
+        if (callerIsAdmin()) {
+            patientMapper.updateEntityFromDto(patientDTO, existing);
+        } else {
+            patientMapper.updateDemographicsFromDto(patientDTO, existing);
+        }
         Patient saved = patientRepository.save(existing);
         log.info("Updated patient with MRN: {}", saved.getMrn());
         return patientMapper.toDto(saved);
@@ -86,6 +101,24 @@ public class PatientService {
         throw new UnsupportedOperationException(
             "SSN-based patient lookup is disabled for HIPAA compliance. " +
             "Use MRN or name-based search instead.");
+    }
+
+    static String escapeLikeWildcards(String term) {
+        char esc = PatientRepository.LIKE_ESCAPE_CHAR;
+        StringBuilder escaped = new StringBuilder(term.length());
+        for (char c : term.toCharArray()) {
+            if (c == esc || c == '%' || c == '_') {
+                escaped.append(esc);
+            }
+            escaped.append(c);
+        }
+        return escaped.toString();
+    }
+
+    private boolean callerIsAdmin() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> ADMIN_AUTHORITY.equals(authority.getAuthority()));
     }
 
     private String generateMrn() {
