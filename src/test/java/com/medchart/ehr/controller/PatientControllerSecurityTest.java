@@ -191,6 +191,18 @@ class PatientControllerSecurityTest {
     }
 
     @Test
+    void concurrentNonAdminCreatesGetDistinctMrns() throws Exception {
+        String body = "{\"firstName\":\"Twin\",\"lastName\":\"Person\",\"dateOfBirth\":\"1990-01-01\"}";
+        for (int i = 0; i < 20; i++) {
+            mockMvc.perform(post("/v1/patients").header("Authorization", bearer("patient-staff"))
+                            .contentType(MediaType.APPLICATION_JSON).content(body))
+                    .andExpect(status().isCreated());
+        }
+        assertThat(patientRepository.findAll().stream().map(Patient::getMrn).distinct().count())
+                .isEqualTo(patientRepository.count());
+    }
+
+    @Test
     void auditRecordsAuthenticatedUserAndIgnoresForwardedForHeader() throws Exception {
         mockMvc.perform(get("/v1/patients/" + patient.getId())
                         .header("Authorization", bearer("patient-staff"))

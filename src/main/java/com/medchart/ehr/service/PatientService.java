@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.security.SecureRandom;
 import java.util.Optional;
 
 @Service
@@ -25,6 +26,8 @@ import java.util.Optional;
 public class PatientService {
 
     static final String ADMIN_AUTHORITY = "ROLE_ADMIN";
+    private static final int GENERATED_MRN_DIGITS = 16;
+    private static final SecureRandom MRN_RANDOM = new SecureRandom();
 
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
@@ -121,7 +124,11 @@ public class PatientService {
                 .anyMatch(authority -> ADMIN_AUTHORITY.equals(authority.getAuthority()));
     }
 
-    private String generateMrn() {
-        return "MRN" + System.currentTimeMillis();
+    static String generateMrn() {
+        StringBuilder mrn = new StringBuilder("MRN");
+        for (int i = 0; i < GENERATED_MRN_DIGITS; i++) {
+            mrn.append(MRN_RANDOM.nextInt(10));
+        }
+        return mrn.toString();
     }
 }
