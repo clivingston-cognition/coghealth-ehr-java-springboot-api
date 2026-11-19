@@ -20,8 +20,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeastOnce;
@@ -193,10 +199,26 @@ class PatientControllerSecurityTest {
     @Test
     void concurrentNonAdminCreatesGetDistinctMrns() throws Exception {
         String body = "{\"firstName\":\"Twin\",\"lastName\":\"Person\",\"dateOfBirth\":\"1990-01-01\"}";
-        for (int i = 0; i < 20; i++) {
-            mockMvc.perform(post("/v1/patients").header("Authorization", bearer("patient-staff"))
-                            .contentType(MediaType.APPLICATION_JSON).content(body))
-                    .andExpect(status().isCreated());
+        String token = bearer("patient-staff");
+        int requests = 20;
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService pool = Executors.newFixedThreadPool(requests);
+        try {
+            List<Future<Integer>> results = new ArrayList<>();
+            for (int i = 0; i < requests; i++) {
+                results.add(pool.submit(() -> {
+                    start.await();
+                    return mockMvc.perform(post("/v1/patients").header("Authorization", token)
+                                    .contentType(MediaType.APPLICATION_JSON).content(body))
+                            .andReturn().getResponse().getStatus();
+                }));
+            }
+            start.countDown();
+            for (Future<Integer> result : results) {
+                assertThat(result.get(30, TimeUnit.SECONDS)).isEqualTo(201);
+            }
+        } finally {
+            pool.shutdownNow();
         }
         assertThat(patientRepository.findAll().stream().map(Patient::getMrn).distinct().count())
                 .isEqualTo(patientRepository.count());
