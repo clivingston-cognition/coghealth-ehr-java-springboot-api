@@ -105,6 +105,18 @@ class PatientControllerSecurityTest {
     }
 
     @Test
+    void nonAdminCannotRegisterViaPathVariants() throws Exception {
+        for (String path : new String[] {"/api/auth/register", "/api/auth/register/"}) {
+            mockMvc.perform(post(path).header("Authorization", bearer("patient-staff"))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"username\":\"mallory2\",\"email\":\"m2@example.test\",\"password\":\"x\","
+                                    + "\"firstName\":\"M\",\"lastName\":\"L\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        assertThat(userRepository.existsByUsername("mallory2")).isFalse();
+    }
+
+    @Test
     void authenticatedStaffCanReadPatient() throws Exception {
         mockMvc.perform(get("/v1/patients/" + patient.getId()).header("Authorization", bearer("patient-staff")))
                 .andExpect(status().isOk())

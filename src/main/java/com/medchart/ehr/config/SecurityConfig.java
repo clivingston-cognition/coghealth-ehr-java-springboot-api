@@ -61,11 +61,11 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeRequests()
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                .antMatchers("/api/auth/register").hasRole("ADMIN")
+                .mvcMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .mvcMatchers("/api/auth/register").hasRole("ADMIN")
                 .antMatchers("/actuator/health", "/actuator/info").permitAll()
                 .antMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .antMatchers("/v1/patients/**").hasAnyRole(PATIENT_ROLES)
+                .mvcMatchers("/v1/patients/**").hasAnyRole(PATIENT_ROLES)
                 .anyRequest().authenticated();
 
         return http.build();
