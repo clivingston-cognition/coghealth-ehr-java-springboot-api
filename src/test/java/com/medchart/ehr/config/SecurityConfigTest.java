@@ -168,6 +168,25 @@ class SecurityConfigTest {
     }
 
     @Test
+    void providerSearchAuditDoesNotRecordProviderIdAsResourceId() throws Exception {
+        mockMvc.perform(asUser(get("/v1/encounters/provider/424242/schedule").param("date", "2026-01-01"),
+                "provider-user")).andExpect(status().isOk());
+
+        AuditEvent event = null;
+        for (int i = 0; i < 50 && event == null; i++) {
+            event = auditEventRepository.findAll().stream()
+                    .filter(e -> "View provider schedule".equals(e.getDescription()))
+                    .findFirst().orElse(null);
+            if (event == null) {
+                Thread.sleep(100);
+            }
+        }
+        assertThat(event).isNotNull();
+        assertThat(event.getResourceId()).isNull();
+        assertThat(event.getPatientId()).isNull();
+    }
+
+    @Test
     void loginIsPublicAndIssuesUsableToken() throws Exception {
         String response = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -32,7 +32,9 @@ public class AuditAspect {
 
         Long patientId = extractPatientId(signature.getParameterNames(), joinPoint.getArgs(),
                 auditAccess.resourceType());
-        Long resourceId = patientId == null ? firstLongArg(joinPoint.getArgs()) : null;
+        Long resourceId = patientId == null
+                ? extractResourceId(signature.getParameterNames(), joinPoint.getArgs(), auditAccess.resourceType())
+                : null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String userId = getCurrentUserId(authentication);
 
@@ -69,6 +71,22 @@ public class AuditAspect {
             }
         }
         return "Patient".equals(resourceType) ? firstLongArg(args) : null;
+    }
+
+    private Long extractResourceId(String[] parameterNames, Object[] args, String resourceType) {
+        if (parameterNames == null) {
+            return null;
+        }
+        String typedIdName = resourceType.isEmpty()
+                ? null
+                : Character.toLowerCase(resourceType.charAt(0)) + resourceType.substring(1) + "Id";
+        for (int i = 0; i < args.length && i < parameterNames.length; i++) {
+            String name = parameterNames[i];
+            if (args[i] instanceof Long && ("id".equals(name) || name.equals(typedIdName))) {
+                return (Long) args[i];
+            }
+        }
+        return null;
     }
 
     private Long firstLongArg(Object[] args) {
